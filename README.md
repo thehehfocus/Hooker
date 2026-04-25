@@ -50,6 +50,35 @@ end)
 HookTwo.Call() -- Prints "Hello world!", then "executed"
 ```
 
+### An example of a hook chain:
+```lua
+local Table = {
+	DoSomething = function()
+		print("executed")
+	end,
+} 
+
+local AnotherHook = Hooker.HookFunction(Table.DoSomething, Table)
+AnotherHook.OnCall:Connect(function(...)
+	print("Hello world!")
+end)
+AnotherHook:Replace(function(...)
+	print("Hello world2!")
+	return AnotherHook.OriginalFunction(...)
+end)
+
+local HookTwo = Hooker.HookFunction(AnotherHook.CurrentFunction, Table)
+HookTwo.OnCall:Connect(function(...)
+	print("Hello world2!")
+end)
+HookTwo:Replace(function()
+	print("Hello world3!")
+	return HookTwo.OriginalFunction()
+end)
+
+Table.DoSomething() -- Prints "Hello world3!", then "Hello world2!", then "executed", then "Hello world2!", then "Hello world!"
+```
+
 ### Making a reactive table:
 ```lua
 local Table = {
