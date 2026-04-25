@@ -100,6 +100,20 @@ HookValue:ToggleFreeze(true) -- You can no longer change it's value.
 HookValue:Set(100) -- warn
 print(HookValue:Get()) -- 10
 ```
+Custom SetFunction/GetFunction:
+```lua
+local NewHook = Hooker.HookValue(5)
+
+NewHook.SetFunction = function(value)
+	return value / 5
+end
+NewHook.GetFunction = function(currentvalue)
+	return currentvalue * 5
+end
+
+NewHook:Set(5) -- saves as 1
+print(NewHook:Get()) -- prints 5
+```
 
 ### Using hook functions with reactive tables:
 ```lua
