@@ -4,6 +4,10 @@ Simple module to create hooks and reactive values without making a mess.
 ## Installation
 Just copy the Hooker folder contents.
 
+Necessary notice.
+- Hooks are per-target objects, its not recommended to do multiple hooks onto a single target.
+- If you do want hook function chaining, you can hook directly onto last hook's '.CurrentFunction'
+
 ## Usage
 
 ### Hooking a table function:
