@@ -87,12 +87,21 @@ TableHookClass.__index = TableHookClass
 
 type TableHook<T = {any}> = setmetatable<{
 	Table: T,
+	Freezed: boolean?,
+	ReadOnlyKeys: {[any]: boolean?},
 	
 	OnRead: Signal.Signal<any>,
 	OnWrite: Signal.Signal<any, any>,
+	ReadFunction: (Table: T, Key: any) -> any,
+	WriteFunction: (Table: T, Key: any, Value: any) -> any,
 	
 	RawGet: (self: TableHook<T>, Key: any) -> any,
 	RawSet: (self: TableHook<T>, Key: any, Value: any) -> (),
+	
+	ToggleFreeze: (self: TableHook<T>, State: boolean?) -> (),
+	ToggleReadOnlyKey: (self: TableHook<T>, Key: any, State: boolean?) -> (),
+	
+	GetValues: (self: TableHook<T>) -> T,
 	
 	[string]: any,
 }, typeof(TableHookClass)>
@@ -101,6 +110,7 @@ type TableHook<T = {any}> = setmetatable<{
 function Module.HookTable<T>(TargetTable: T) : (TableHook<T>, T)
 	local NewHook = setmetatable({}, TableHookClass) :: TableHook<T>
 	NewHook._OriginalTable = TargetTable
+	NewHook.ReadOnlyKeys = {}
 	
 	NewHook.OnRead = Signal()
 	NewHook.OnWrite = Signal()
@@ -109,11 +119,28 @@ function Module.HookTable<T>(TargetTable: T) : (TableHook<T>, T)
 	local Metatable = getmetatable(Proxy)
 	Metatable.__index = function(_, Key)
 		NewHook.OnRead:Fire(Key)
+		if NewHook.ReadFunction then
+			return NewHook.ReadFunction(TargetTable, Key)
+		end
 		return (TargetTable::any)[Key]
 	end
 	Metatable.__newindex = function(_, Key, Value)
-		(TargetTable::any)[Key] = Value
+		if NewHook.ReadOnlyKeys[Key] then
+			warn(`{Key} is read-only`)
+			warn(NewHook)
+			return
+		end
+		if NewHook.Freezed then
+			warn("Attempt to modify a frozen table")
+			warn(NewHook)
+			return
+		end
+		
 		NewHook.OnWrite:Fire(Key, Value)
+		if NewHook.WriteFunction then
+			return NewHook.WriteFunction(TargetTable, Key, Value)
+		end
+		(TargetTable::any)[Key] = Value
 	end
 	
 	NewHook.Table = Proxy
@@ -124,9 +151,21 @@ end
 function TableHookClass.RawGet(self: TableHook, Key: any) : any
 	return self._OriginalTable[Key]
 end
--- Sets a value in the original table, bypassing .OnWrite
+-- Sets a value in the original table, bypassing .OnWrite and Freeze
 function TableHookClass.RawSet(self: TableHook, Key: any, Value: any)
 	self._OriginalTable[Key] = Value
+end
+-- Gets the values of the table
+function TableHookClass.GetValues(self: TableHook) : any
+	return self._OriginalTable
+end
+-- Freezes the table, prevents any changes
+function TableHookClass.ToggleFreeze(self: TableHook, Value: boolean?)
+	self.Freezed = Value
+end
+-- Sets a key to read-only
+function TableHookClass.ToggleReadOnlyKey(self: TableHook, Key: any, Value: boolean?)
+	self.ReadOnlyKeys[Key] = Value and true or nil
 end
 
 -------------------------
