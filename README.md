@@ -43,8 +43,7 @@ HookTwo.Call() -- Prints "Hello world!", then "executed"
 ```
 
 ### Making a reactive table:
-```lua
-local Table = {
+```lualocal Table = {
 	DoSomething = function()
 		print("executed")
 	end,
@@ -65,9 +64,18 @@ end
 Table.a = 5 -- Fires .OnWrite, prints "write a = 5"
 Table.DoSomething() -- Fires .OnRead, prints "executed", "read DoSomething"
 print(Table.a) -- Fires .OnRead, prints 10, "read a"
+
 task.wait(1)
-NewHook:RawSet("a", 10) -- Doesnt call .OnWrite
+
+NewHook:RawSet("a", 10) -- Doesnt call .OnWrite, ignores .WriteFunction and ignores freeze 
 print(NewHook:RawGet("a")) -- Doesnt call .OnRead, prints 10
+
+task.wait(1)
+
+NewHook:ToggleFreeze(true) -- Table is no longer normally modifiable
+Table.a = 10 -- warn
+NewHook:RawSet("a", 10) 
+print(Table.a) -- Fires .OnRead, prints 10, "read a"
 ```
 
 ### Creating a reactive variable:
