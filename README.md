@@ -8,7 +8,6 @@ Just copy the Hooker folder contents.
 
 ### Hooking a table function:
 ```lua
-
 local Table = {
 	DoSomething = function()
 		print("executed")
@@ -19,7 +18,6 @@ local AnotherHook = Hooker.HookFunction(Table.DoSomething, Table)
 AnotherHook.OnCall:Connect(function(...)
 	print("Hello world!")
 end)
-
 AnotherHook:Replace(function(...)
 	print("Hello world2!")
 	return AnotherHook.OriginalFunction(...)
@@ -30,6 +28,12 @@ Table.DoSomething() -- Prints "Hello world2!", then "executed", then "Hello worl
 
 ### Creating a hook function:
 ```lua
+local Table = {
+	DoSomething = function()
+		print("executed")
+	end,
+}
+
 local HookTwo = Hooker.HookFunction(Table.DoSomething)
 HookTwo:Replace(function(...)
 	print("Hello world!")
@@ -40,6 +44,12 @@ HookTwo.Call() -- Prints "Hello world!", then "executed"
 
 ### Making a reactive table:
 ```lua
+local Table = {
+	DoSomething = function()
+		print("executed")
+	end,
+}
+
 local NewHook, Table = Hooker.HookTable(Table)
 NewHook.OnRead:Connect(function(Key)
 	print("read ".. Key)
