@@ -58,12 +58,16 @@ NewHook.OnWrite:Connect(function(Key, Value)
 	print("write ".. Key.. " = ".. Value)
 end)
 
-Table.a = 5 -- Fires .OnWrite
-Table.DoSomething() -- Fires .OnRead
-print(Table.a) -- Fires .OnRead
+NewHook.WriteFunction = function(self, key, value)
+	self[key] = value * 2
+end
+
+Table.a = 5 -- Fires .OnWrite, prints "write a = 5"
+Table.DoSomething() -- Fires .OnRead, prints "executed", "read DoSomething"
+print(Table.a) -- Fires .OnRead, prints 10, "read a"
 task.wait(1)
 NewHook:RawSet("a", 10) -- Doesnt call .OnWrite
-print(NewHook:RawGet("a")) -- Doesnt call .OnRead
+print(NewHook:RawGet("a")) -- Doesnt call .OnRead, prints 10
 ```
 
 ### Creating a reactive variable:
@@ -80,4 +84,33 @@ HookValue:ToggleFreeze(true) -- You can no longer change it's value.
 
 HookValue:Set(100) -- warn
 print(HookValue:Get()) -- 10
+```
+
+### Using hook functions with reactive tables:
+```lua
+local Table = {
+	DoSomething = function()
+		print("executed")
+	end,
+}
+
+local NewHook, Table = Hooker.HookTable(Table)
+NewHook.ReadFunction = function(self, Key)
+	print("read ".. Key)
+	return self[Key]
+end
+
+local HookFunction = Hooker.HookFunction(Table.DoSomething, NewHook:GetValues())
+HookFunction.OnCall:Connect(function()
+	print("function called")
+end)
+HookFunction:Replace(function(...)
+	print("replacement called")
+	return HookFunction.OriginalFunction(...)
+end)
+
+Table.DoSomething() --[[
+	Prints a sequence: 
+	 "read DoSomething", "read DoSomething", "replacement called", "executed", "function called"
+]]
 ```
