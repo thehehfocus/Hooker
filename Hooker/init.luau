@@ -10,12 +10,7 @@ local Signal = require(script.Signal)
 local FunctionHookClass = {}
 FunctionHookClass.__index = FunctionHookClass
 
-type function GetParameters(ty: type)
-	local result = types.newfunction(ty:parameters())
-	return result
-end
-type AnyFunction = (...any) -> any
-type FunctionHook<A = AnyFunction, T = {any}> = {
+type FunctionHook<A = () -> (), T = {any}> = {
 	TargetTable: T?,
 	Key: any,
 	OriginalFunction: A,
@@ -176,7 +171,7 @@ local ValueHookClass = {}
 ValueHookClass.__index = ValueHookClass
 
 type ValueHook<T> = {
-	_Value: T,
+	Value: T, -- Setting/Getting it explicitly will be equal to Rawset/Rawget
 	Freezed: boolean?,
 	OnChange: Signal.Signal<(T, T)>,
 	
@@ -191,7 +186,7 @@ type ValueHook<T> = {
 -- Creates a new value hook, use methods to change value.
 function Module.HookValue<T>(TargetValue: T, Freeze: boolean?) : ValueHook<T>
 	local NewHook = setmetatable({}, ValueHookClass) :: ValueHook<T>
-	NewHook._Value = TargetValue
+	NewHook.Value = TargetValue
 	NewHook.OnChange = Signal()
 	NewHook.Freezed = Freeze
 	
@@ -199,7 +194,7 @@ function Module.HookValue<T>(TargetValue: T, Freeze: boolean?) : ValueHook<T>
 end
 -- Gets the value
 function ValueHookClass.Get<T>(self: ValueHook<T>) : T
-	return self.GetFunction and self.GetFunction(self._Value) or self._Value
+	return self.GetFunction and self.GetFunction(self.Value) or self.___Value
 end
 -- Sets the value, if freezed, will warn and return.
 function ValueHookClass.Set<T>(self: ValueHook<T>, NewValue: T)
@@ -209,9 +204,9 @@ function ValueHookClass.Set<T>(self: ValueHook<T>, NewValue: T)
 		return
 	end
 	
-	self.OnChange:Fire(NewValue, self._Value)
+	self.OnChange:Fire(NewValue, self.Value)
 	
-	self._Value = self.SetFunction and self.SetFunction(NewValue) or NewValue
+	self.Value = self.SetFunction and self.SetFunction(NewValue) or NewValue
 end
 -- Toggles the freezed state. If true, will not allow changes.
 function ValueHookClass.ToggleFreeze<T>(self: ValueHook<T>, Value: boolean?)
