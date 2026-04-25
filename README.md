@@ -43,7 +43,8 @@ HookTwo.Call() -- Prints "Hello world!", then "executed"
 ```
 
 ### Making a reactive table:
-```lualocal Table = {
+```lua
+local Table = {
 	DoSomething = function()
 		print("executed")
 	end,
