@@ -15,7 +15,7 @@ type function GetParameters(ty: type)
 	return result
 end
 type AnyFunction = (...any) -> any
-type FunctionHook<A = AnyFunction, T = {any}> = setmetatable<{
+type FunctionHook<A = AnyFunction, T = {any}> = {
 	TargetTable: T?,
 	Key: any,
 	OriginalFunction: A,
@@ -25,7 +25,7 @@ type FunctionHook<A = AnyFunction, T = {any}> = setmetatable<{
 	Replace: (self: FunctionHook<A,T>, Func: A) -> (),
 	
 	Call: A,
-}, typeof(FunctionHookClass)>
+}
 
 -- Creates a new function hook
 function Module.HookFunction<A, T>(TargetFunction: A & (...any) -> any, TargetTable: T?)
@@ -85,7 +85,7 @@ end
 local TableHookClass = {}
 TableHookClass.__index = TableHookClass
 
-type TableHook<T = {any}> = setmetatable<{
+type TableHook<T = {any}> = {
 	Table: T,
 	Freezed: boolean?,
 	ReadOnlyKeys: {[any]: boolean?},
@@ -104,7 +104,7 @@ type TableHook<T = {any}> = setmetatable<{
 	GetValues: (self: TableHook<T>) -> T,
 	
 	[string]: any,
-}, typeof(TableHookClass)>
+}
 
 -- Creates a new table hook, fires on read and write, use Proxy (second return).
 function Module.HookTable<T>(TargetTable: T) : (TableHook<T>, T)
@@ -151,7 +151,7 @@ end
 function TableHookClass.RawGet(self: TableHook, Key: any) : any
 	return self._OriginalTable[Key]
 end
--- Sets a value in the original table, bypassing hook features (e.g. .OnRead, .WriteFunction, .ReadOnlyKeys)
+-- Sets a value in the original table, bypassing .OnWrite and Freeze
 function TableHookClass.RawSet(self: TableHook, Key: any, Value: any)
 	self._OriginalTable[Key] = Value
 end
@@ -175,15 +175,18 @@ end
 local ValueHookClass = {}
 ValueHookClass.__index = ValueHookClass
 
-type ValueHook<T> = setmetatable<{
+type ValueHook<T> = {
 	_Value: T,
 	Freezed: boolean?,
 	OnChange: Signal.Signal<(T, T)>,
 	
+	SetFunction: (T) -> T?,
+	GetFunction: (T) -> T?,
+	
 	ToggleFreeze: (ValueHook<T>, boolean?) -> (),
 	Set: (ValueHook<T>, T) -> (),
 	Get: (ValueHook<T>) -> T,
-}, typeof(ValueHookClass)>
+}
 
 -- Creates a new value hook, use methods to change value.
 function Module.HookValue<T>(TargetValue: T, Freeze: boolean?) : ValueHook<T>
@@ -196,7 +199,7 @@ function Module.HookValue<T>(TargetValue: T, Freeze: boolean?) : ValueHook<T>
 end
 -- Gets the value
 function ValueHookClass.Get<T>(self: ValueHook<T>) : T
-	return self._Value
+	return self.GetFunction and self.GetFunction(self._Value) or self._Value
 end
 -- Sets the value, if freezed, will warn and return.
 function ValueHookClass.Set<T>(self: ValueHook<T>, NewValue: T)
@@ -207,7 +210,8 @@ function ValueHookClass.Set<T>(self: ValueHook<T>, NewValue: T)
 	end
 	
 	self.OnChange:Fire(NewValue, self._Value)
-	self._Value = NewValue
+	
+	self._Value = self.SetFunction and self.SetFunction(NewValue) or NewValue
 end
 -- Toggles the freezed state. If true, will not allow changes.
 function ValueHookClass.ToggleFreeze<T>(self: ValueHook<T>, Value: boolean?)
