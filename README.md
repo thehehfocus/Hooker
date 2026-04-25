@@ -24,6 +24,10 @@ AnotherHook:Replace(function(...)
 end)
 
 Table.DoSomething() -- Prints "Hello world2!", then "executed", then "Hello world!"
+
+AnotherHook.CannotCall = true
+
+Table.DoSomething() -- warn
 ```
 
 ### Creating a hook function:
