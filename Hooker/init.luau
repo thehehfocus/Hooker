@@ -151,7 +151,7 @@ end
 function TableHookClass.RawGet(self: TableHook, Key: any) : any
 	return self._OriginalTable[Key]
 end
--- Sets a value in the original table, bypassing .OnWrite and Freeze
+-- Sets a value in the original table, bypassing hook features (e.g. .OnRead, .WriteFunction, .ReadOnlyKeys)
 function TableHookClass.RawSet(self: TableHook, Key: any, Value: any)
 	self._OriginalTable[Key] = Value
 end
