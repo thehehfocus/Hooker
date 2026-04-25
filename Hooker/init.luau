@@ -3,6 +3,19 @@ local Module = {}
 
 local Signal = require(script.Signal)
 
+local function GetTrace(Warning: string)
+	local Result = `Warning "{Warning}" occured. Stack trace: \n`
+	local Line = ""
+	local i = 2
+	while Line do
+		Line = debug.info(i, "l")
+		local Name = debug.info(i, "s")
+		if Line then Result = `{Result} At line {Line}, in script {Name} \n` end
+		i+=1
+	end
+	return Result
+end
+
 -------------------------
 --== Functions hooks ==--
 -------------------------
@@ -17,9 +30,10 @@ type FunctionHook<A = () -> (), T = {any}> = {
 	CurrentFunction: A,
 
 	OnCall: Signal.Signal<...any>,
-	Replace: (self: FunctionHook<A,T>, Func: A) -> (),
+	CannotCall: boolean?,
 	
 	Call: A,
+	Replace: (self: FunctionHook<A,T>, Func: A) -> (),
 }
 
 -- Creates a new function hook
@@ -60,6 +74,12 @@ function FunctionHookClass.Replace<A, T>(self: FunctionHook<A, T>, Function: A)
 	end
 	
 	local HookedFunc = function(...)
+		if self.CannotCall then
+			warn(self)
+			warn(GetTrace(`Function is not callable.`))
+			return
+		end
+		
 		self.OnCall:Fire();
 		return (Function::any)(...)
 	end
@@ -121,13 +141,13 @@ function Module.HookTable<T>(TargetTable: T) : (TableHook<T>, T)
 	end
 	Metatable.__newindex = function(_, Key, Value)
 		if NewHook.ReadOnlyKeys[Key] then
-			warn(`{Key} is read-only`)
 			warn(NewHook)
+			warn(GetTrace(`Attempt to modify a read-only key: {Key}`))
 			return
 		end
 		if NewHook.Freezed then
-			warn("Attempt to modify a frozen table")
 			warn(NewHook)
+			warn(GetTrace(`Attempt to modify a frozen table.`))
 			return
 		end
 		
@@ -199,8 +219,8 @@ end
 -- Sets the value, if freezed, will warn and return.
 function ValueHookClass.Set<T>(self: ValueHook<T>, NewValue: T)
 	if self.Freezed then
-		warn("Hook is freezed")
 		warn(self)
+		warn(GetTrace(`Attempt to modify a frozen value.`))
 		return
 	end
 	
